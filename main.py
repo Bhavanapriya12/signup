@@ -26,8 +26,9 @@ models.Base.metadata.create_all(bind=engine)
 
 
 class UserCreate(BaseModel):
-    username:str
+    email: EmailStr
     password:str=Field(min_length=10)
+    reenterpassword:str=Field(min_length=10)
 
     @validator('password')
     def validate_password(cls,value):
@@ -40,11 +41,9 @@ class UserCreate(BaseModel):
             raise ValueError("password must contain atleast one lowercase character")
         return value
 
-    email:EmailStr
-
 
 class UserLogin(BaseModel):
-    username:str
+    email:EmailStr
     password:str
 
 
@@ -55,7 +54,7 @@ async def signup(user: UserCreate):
     existing_user= db.query(User).filter(User.email==user.email).first()
     if existing_user:
         raise HTTPException(status_code=400,detail="user already exists")
-    new_user= User(username=user.username,password=user.password,email=user.email)
+    new_user= User(email=user.email,password=user.password)
     db.add(new_user)
     db.commit()
 
@@ -65,9 +64,10 @@ async def signup(user: UserCreate):
 @app.post("/login")
 async def login(user: UserLogin):
     db=SessionLocal()
-    existing_user=db.query(User).filter(User.username==user.username).first()
+    existing_user=db.query(User).filter(User.email==user.email).first()
     if not user or not verify_password(user.password,existing_user.password):
         raise HTTPException(status_code=401,detail="Incorrect username or password")
+
     return{"message": "Login successful"}
 
 
